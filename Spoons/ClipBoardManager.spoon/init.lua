@@ -67,11 +67,12 @@ function obj:init()
 
 				menuTable = {}
 				for k, v in pairs(clipboardHistory) do
+					local shortV = v
 					if string.len(v) > 50 then
-						v = string.sub(v, 1, 50)
+						shortV = string.sub(v, 1, 50)
 					end
 					table.insert(menuTable, {
-						title = v,
+						title = shortV,
 						fn = function()
 							hs.eventtap.keyStrokes(v)
 						end,
