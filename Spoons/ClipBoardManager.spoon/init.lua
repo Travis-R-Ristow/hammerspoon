@@ -21,9 +21,34 @@ obj.author = "Travis R"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
 local clipboardHistory = {}
-local maxSize = 5
+local maxSize = 10
+
+-- {
+-- 		{
+-- 			title = "my menu item",
+-- 			fn = function()
+-- 				print("you clicked my menu item!")
+-- 			end,
+-- 		},
+-- 		{ title = "-" },
+-- 		-- { title = "other item", fn = some_function },
+-- 		{ title = "disabled item", disabled = true },
+-- 		{ title = "checked item", checked = true },
+-- 	}
 
 function obj:init()
+	local winSizeW = hs.window.focusedWindow():screen():frame().w
+	local menuTable = {}
+	local menuBar = hs.menubar.new(true, "ClipHistory")
+	menuBar:setIcon(hs.image.imageFromPath("~/.hammerspoon/ClipboardIcon.png"):size({ w = 20, h = 20 }))
+
+	hs.hotkey.bind({ "cmd", "ctrl" }, "V", function()
+		if #menuTable == 0 then
+			menuBar:setMenu({ { title = "No Copies to Paste" } })
+		end
+		menuBar:popupMenu({ x = winSizeW - 450, y = 0 })
+	end)
+
 	self.eventtap = hs.eventtap.new(
 		{ hs.eventtap.event.types.keyUp, hs.eventtap.event.types.flagsChanged },
 		function(event)
@@ -34,14 +59,26 @@ function obj:init()
 				local copyCtx = hs.pasteboard.getContents()
 				if #clipboardHistory < maxSize then
 					table.insert(clipboardHistory, copyCtx)
-					print(copyCtx)
+					-- print(copyCtx)
 				else
 					table.remove(clipboardHistory, 1)
 					table.insert(clipboardHistory, copyCtx)
 				end
+
+				menuTable = {}
 				for k, v in pairs(clipboardHistory) do
-					print("Key:", k, "Value:", v)
+					if string.len(v) > 50 then
+						v = string.sub(v, 1, 50)
+					end
+					table.insert(menuTable, {
+						title = v,
+						fn = function()
+							hs.eventtap.keyStrokes(v)
+						end,
+					})
+					-- print("Key:", k, "Value:", v)
 				end
+				menuBar:setMenu(menuTable)
 			end
 		end
 	)

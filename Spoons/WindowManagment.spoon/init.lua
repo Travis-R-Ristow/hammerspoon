@@ -44,20 +44,20 @@ function obj:init()
 		hs.grid.set(win, "1,1,1,1")
 	end)
 
-	hs.hotkey.bind({ "alt", "shift" }, "Left", function()
+	hs.hotkey.bind({ "alt", "shift" }, "[", function()
 		local win = hs.window.focusedWindow()
 		hs.grid.set(win, "0,0,1,2")
 	end)
 
-	hs.hotkey.bind({ "alt", "shift" }, "Right", function()
+	hs.hotkey.bind({ "alt", "shift" }, "]", function()
 		local win = hs.window.focusedWindow()
 		hs.grid.set(win, "1,0,1,2")
 	end)
 
 	hs.hotkey.bind({ "ctrl" }, "F", function()
 		local win = hs.window.focusedWindow()
-		local winSizeW = hs.screen.mainScreen():frame().w
-		local winSizeH = hs.screen.mainScreen():frame().h
+		local winSizeW = hs.window.focusedWindow():screen():frame().w
+		local winSizeH = hs.window.focusedWindow():screen():frame().h
 
 		if win:frame().w ~= winSizeW or win:frame().h ~= winSizeH then
 			win:maximize()
