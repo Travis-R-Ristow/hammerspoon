@@ -59,7 +59,7 @@ function obj:init()
 		local winSizeW = hs.window.focusedWindow():screen():frame().w
 		local winSizeH = hs.window.focusedWindow():screen():frame().h
 
-		if win:frame().w ~= winSizeW or win:frame().h ~= winSizeH then
+		if win:frame().w ~= winSizeW or win:frame().h ~= winSizeH or win:frame().x ~= 0 or win:frame().y ~= 0 then
 			win:maximize()
 		else
 			win:setFrame({

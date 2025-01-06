@@ -21,6 +21,8 @@ obj.author = "Travis R"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
 local clipboardHistory = {}
+local acquiNameHistory = {}
+local guidHistory = {}
 local maxSize = 10
 
 -- {
@@ -36,17 +38,34 @@ local maxSize = 10
 -- 		{ title = "checked item", checked = true },
 -- 	}
 
+local tableContains = function(t, value)
+	for _, v in pairs(t) do
+		if v == value then
+			return true
+		end
+	end
+	return false
+end
+
+local dedupTable = function(t)
+	local temp = {}
+	for _, v in ipairs(t) do
+		if not tableContains(temp, v) then
+			table.insert(temp, v)
+		end
+	end
+	return temp
+end
+
 function obj:init()
-	local winSizeW = hs.window.focusedWindow():screen():frame().w
-	local menuTable = {}
+	local menuTable = { { title = "No Copies to Paste" } }
 	local menuBar = hs.menubar.new(true, "ClipHistory")
 	menuBar:setIcon(hs.image.imageFromPath("~/.hammerspoon/ClipboardIcon.png"):size({ w = 20, h = 20 }))
+	menuBar:setMenu(menuTable)
 
 	hs.hotkey.bind({ "cmd", "ctrl" }, "V", function()
-		if #menuTable == 0 then
-			menuBar:setMenu({ { title = "No Copies to Paste" } })
-		end
-		menuBar:popupMenu({ x = winSizeW - 450, y = 0 })
+		local focusedWindow = hs.screen.mainScreen():frame()
+		menuBar:popupMenu({ x = focusedWindow.w - (focusedWindow.w / 4), y = 0 })
 	end)
 
 	self.eventtap = hs.eventtap.new(
@@ -57,7 +76,33 @@ function obj:init()
 
 			if flags.cmd and keyCode == hs.keycodes.map["C"] then
 				local copyCtx = hs.pasteboard.getContents()
-				if #clipboardHistory < maxSize then
+				if string.match(copyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
+					if #acquiNameHistory < maxSize then
+						table.insert(acquiNameHistory, copyCtx)
+					else
+						table.remove(acquiNameHistory, 1)
+						table.insert(acquiNameHistory, copyCtx)
+					end
+					acquiNameHistory = dedupTable(acquiNameHistory)
+					-- print(copyCtx)
+				elseif
+					string.match(
+						copyCtx,
+						string.rep("%x", 8)
+							.. "%-"
+							.. string.rep(string.rep("%x", 4) .. "%-", 3)
+							.. string.rep("%x", 12)
+					)
+				then
+					if #guidHistory < maxSize then
+						table.insert(guidHistory, copyCtx)
+					else
+						table.remove(guidHistory, 1)
+						table.insert(guidHistory, copyCtx)
+					end
+					guidHistory = dedupTable(guidHistory)
+					hs.pasteboard.setContents(string.lower(copyCtx))
+				elseif #clipboardHistory < maxSize then
 					table.insert(clipboardHistory, copyCtx)
 					-- print(copyCtx)
 				else
@@ -66,7 +111,7 @@ function obj:init()
 				end
 
 				menuTable = {}
-				for k, v in pairs(clipboardHistory) do
+				for _, v in pairs(clipboardHistory) do
 					local shortV = v
 					if string.len(v) > 50 then
 						shortV = string.sub(v, 1, 50)
@@ -79,6 +124,31 @@ function obj:init()
 					})
 					-- print("Key:", k, "Value:", v)
 				end
+
+				if #acquiNameHistory then
+					table.insert(menuTable, { title = "~~ ~~ Acquisition Names ~~ ~~", indent = 2, disabled = true })
+					for _, v in pairs(acquiNameHistory) do
+						table.insert(menuTable, {
+							title = v,
+							fn = function()
+								hs.eventtap.keyStrokes(v)
+							end,
+						})
+					end
+				end
+
+				if #guidHistory then
+					table.insert(menuTable, { title = "~~  ~~   G U I D s   ~~  ~~", indent = 2, disabled = true })
+					for _, v in pairs(guidHistory) do
+						table.insert(menuTable, {
+							title = v,
+							fn = function()
+								hs.eventtap.keyStrokes(string.lower(v))
+							end,
+						})
+					end
+				end
+
 				menuBar:setMenu(menuTable)
 			end
 		end
