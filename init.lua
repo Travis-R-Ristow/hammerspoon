@@ -1,4 +1,4 @@
-hs.loadSpoon("WindowManagment")
+hs.loadSpoon("WindowManagement")
 
 hs.loadSpoon("ClipBoardManager")
 

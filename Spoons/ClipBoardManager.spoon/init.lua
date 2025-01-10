@@ -25,19 +25,6 @@ local acquiNameHistory = {}
 local guidHistory = {}
 local maxSize = 10
 
--- {
--- 		{
--- 			title = "my menu item",
--- 			fn = function()
--- 				print("you clicked my menu item!")
--- 			end,
--- 		},
--- 		{ title = "-" },
--- 		-- { title = "other item", fn = some_function },
--- 		{ title = "disabled item", disabled = true },
--- 		{ title = "checked item", checked = true },
--- 	}
-
 local tableContains = function(t, value)
 	for _, v in pairs(t) do
 		if v == value then
@@ -68,6 +55,87 @@ function obj:init()
 		menuBar:popupMenu({ x = focusedWindow.w - (focusedWindow.w / 4), y = 0 })
 	end)
 
+	local saveCopy = function()
+		local copyCtx = hs.pasteboard.getContents()
+		if string.match(copyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
+			if #acquiNameHistory < maxSize then
+				table.insert(acquiNameHistory, copyCtx)
+			else
+				table.remove(acquiNameHistory, 1)
+				table.insert(acquiNameHistory, copyCtx)
+			end
+			acquiNameHistory = dedupTable(acquiNameHistory)
+		elseif
+			string.match(
+				copyCtx,
+				"^"
+					.. string.rep("%x", 8)
+					.. "%-"
+					.. string.rep(string.rep("%x", 4) .. "%-", 3)
+					.. string.rep("%x", 12)
+					.. "$"
+			)
+		then
+			if #guidHistory < maxSize then
+				table.insert(guidHistory, copyCtx)
+			else
+				table.remove(guidHistory, 1)
+				table.insert(guidHistory, copyCtx)
+			end
+			guidHistory = dedupTable(guidHistory)
+			hs.pasteboard.setContents(string.lower(copyCtx))
+		elseif #clipboardHistory < maxSize then
+			clipboardHistory = dedupTable(clipboardHistory)
+			table.insert(clipboardHistory, copyCtx)
+		else
+			clipboardHistory = dedupTable(clipboardHistory)
+			table.remove(clipboardHistory, 1)
+			table.insert(clipboardHistory, copyCtx)
+		end
+	end
+
+	local updateDisplayTable = function()
+		menuTable = {}
+		for _, v in pairs(clipboardHistory) do
+			local shortV = v
+			if string.len(v) > 50 then
+				shortV = string.sub(v, 1, 50)
+			end
+			table.insert(menuTable, {
+				title = shortV,
+				fn = function()
+					hs.eventtap.keyStrokes(v)
+				end,
+			})
+		end
+
+		if #acquiNameHistory then
+			table.insert(menuTable, { title = "~~ ~~ Acquisition Names ~~ ~~", indent = 2, disabled = true })
+			for _, v in pairs(acquiNameHistory) do
+				table.insert(menuTable, {
+					title = v,
+					fn = function()
+						hs.eventtap.keyStrokes(v)
+					end,
+				})
+			end
+		end
+
+		if #guidHistory then
+			table.insert(menuTable, { title = "~~  ~~   G U I D s   ~~  ~~", indent = 2, disabled = true })
+			for _, v in pairs(guidHistory) do
+				table.insert(menuTable, {
+					title = v,
+					fn = function()
+						hs.eventtap.keyStrokes(string.lower(v))
+					end,
+				})
+			end
+		end
+
+		menuBar:setMenu(menuTable)
+	end
+
 	self.eventtap = hs.eventtap.new(
 		{ hs.eventtap.event.types.keyUp, hs.eventtap.event.types.flagsChanged },
 		function(event)
@@ -75,81 +143,13 @@ function obj:init()
 			local keyCode = event:getKeyCode()
 
 			if flags.cmd and keyCode == hs.keycodes.map["C"] then
-				local copyCtx = hs.pasteboard.getContents()
-				if string.match(copyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
-					if #acquiNameHistory < maxSize then
-						table.insert(acquiNameHistory, copyCtx)
-					else
-						table.remove(acquiNameHistory, 1)
-						table.insert(acquiNameHistory, copyCtx)
-					end
-					acquiNameHistory = dedupTable(acquiNameHistory)
-					-- print(copyCtx)
-				elseif
-					string.match(
-						copyCtx,
-						string.rep("%x", 8)
-							.. "%-"
-							.. string.rep(string.rep("%x", 4) .. "%-", 3)
-							.. string.rep("%x", 12)
-					)
-				then
-					if #guidHistory < maxSize then
-						table.insert(guidHistory, copyCtx)
-					else
-						table.remove(guidHistory, 1)
-						table.insert(guidHistory, copyCtx)
-					end
-					guidHistory = dedupTable(guidHistory)
-					hs.pasteboard.setContents(string.lower(copyCtx))
-				elseif #clipboardHistory < maxSize then
-					table.insert(clipboardHistory, copyCtx)
-					-- print(copyCtx)
-				else
-					table.remove(clipboardHistory, 1)
-					table.insert(clipboardHistory, copyCtx)
-				end
+				saveCopy()
+				updateDisplayTable()
+			end
 
-				menuTable = {}
-				for _, v in pairs(clipboardHistory) do
-					local shortV = v
-					if string.len(v) > 50 then
-						shortV = string.sub(v, 1, 50)
-					end
-					table.insert(menuTable, {
-						title = shortV,
-						fn = function()
-							hs.eventtap.keyStrokes(v)
-						end,
-					})
-					-- print("Key:", k, "Value:", v)
-				end
-
-				if #acquiNameHistory then
-					table.insert(menuTable, { title = "~~ ~~ Acquisition Names ~~ ~~", indent = 2, disabled = true })
-					for _, v in pairs(acquiNameHistory) do
-						table.insert(menuTable, {
-							title = v,
-							fn = function()
-								hs.eventtap.keyStrokes(v)
-							end,
-						})
-					end
-				end
-
-				if #guidHistory then
-					table.insert(menuTable, { title = "~~  ~~   G U I D s   ~~  ~~", indent = 2, disabled = true })
-					for _, v in pairs(guidHistory) do
-						table.insert(menuTable, {
-							title = v,
-							fn = function()
-								hs.eventtap.keyStrokes(string.lower(v))
-							end,
-						})
-					end
-				end
-
-				menuBar:setMenu(menuTable)
+			if flags.cmd and keyCode == hs.keycodes.map["V"] then
+				saveCopy()
+				updateDisplayTable()
 			end
 		end
 	)

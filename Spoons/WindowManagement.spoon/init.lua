@@ -15,7 +15,7 @@ setmetatable(obj, {
 })
 obj.__index = obj
 
-obj.name = "WindowManagment"
+obj.name = "WindowManagement"
 obj.version = "0.1"
 obj.author = "Travis R"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
