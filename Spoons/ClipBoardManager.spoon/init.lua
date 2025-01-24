@@ -93,9 +93,9 @@ function obj:init()
 	end
 
 	hs.hotkey.bind({ "cmd", "ctrl" }, "V", function()
-		local focusedWindow = hs.screen.mainScreen():frame()
+		local focusedWindow = hs.window.focusedWindow():screen():frame()
 		updateDisplayTable()
-		menuBar:popupMenu({ x = focusedWindow.w - (focusedWindow.w / 4), y = 0 })
+		menuBar:popupMenu({ x = focusedWindow.x + (focusedWindow.w / 2) - (focusedWindow.w / 4), y = focusedWindow.y })
 	end)
 
 	local saveCopy = function()
