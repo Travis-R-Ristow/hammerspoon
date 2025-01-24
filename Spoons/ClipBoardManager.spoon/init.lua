@@ -143,13 +143,20 @@ function obj:init()
 			local flags = event:getFlags()
 			local keyCode = event:getKeyCode()
 
-			if flags.cmd and keyCode == hs.keycodes.map["C"] then
+			if
+				flags.cmd
+				and (
+					keyCode == hs.keycodes.map["C"]
+					or keyCode == hs.keycodes.map["V"]
+					or keyCode == hs.keycodes.map["X"]
+				)
+			then
 				saveCopy()
 			end
 
-			if flags.cmd and keyCode == hs.keycodes.map["V"] then
-				saveCopy()
-			end
+			-- if flags.cmd and keyCode == hs.keycodes.map["V"] then
+			-- 	saveCopy()
+			-- end
 		end
 	)
 
