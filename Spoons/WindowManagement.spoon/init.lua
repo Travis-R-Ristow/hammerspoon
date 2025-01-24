@@ -58,17 +58,67 @@ function obj:init()
 		local win = hs.window.focusedWindow()
 		local winSizeW = hs.window.focusedWindow():screen():frame().w
 		local winSizeH = hs.window.focusedWindow():screen():frame().h
+		local screenX = hs.screen.mainScreen():frame().x
+		local screenY = hs.screen.mainScreen():frame().y
 
-		if win:frame().w ~= winSizeW or win:frame().h ~= winSizeH or win:frame().x ~= 0 or win:frame().y ~= 0 then
+		if
+			win:frame().w < winSizeW
+			or win:frame().h < winSizeH
+			or win:frame().x ~= screenX
+			or win:frame().y ~= screenY
+		then
 			win:maximize()
 		else
+			local resizeW = winSizeW / 1.5
+			local resizeH = winSizeH / 1.5
+
 			win:setFrame({
-				x = (winSizeW - (winSizeW / 1.5)) / 2,
-				y = (winSizeH - (winSizeH / 1.5)) / 2,
-				w = winSizeW / 1.5,
-				h = winSizeH / 1.5,
+				x = screenX + (resizeW / 4),
+				y = screenY + (resizeH / 4),
+				w = resizeW,
+				h = resizeH,
 			})
 		end
+	end)
+
+	function getCurrentIndex(tbl, searchValue)
+		for k, v in pairs(tbl) do
+			if v == searchValue then
+				return k
+			end
+		end
+	end
+
+	hs.hotkey.bind({ "ctrl", "shift" }, "LEFT", function()
+		local currentScreen = hs.screen.mainScreen()
+		local allScreens = hs.screen.allScreens()
+		local currentScreenIndex = getCurrentIndex(allScreens, currentScreen)
+		local moveToScreenIndex = currentScreenIndex - 1
+
+		if moveToScreenIndex <= 0 then
+			moveToScreenIndex = #allScreens
+		end
+
+		hs.window.focusedWindow():moveToScreen(allScreens[moveToScreenIndex], false, true)
+	end)
+
+	hs.hotkey.bind({ "ctrl", "shift" }, "RIGHT", function()
+		local currentScreen = hs.screen.mainScreen()
+		local allScreens = hs.screen.allScreens()
+		local currentScreenIndex = getCurrentIndex(allScreens, currentScreen)
+		local moveToScreenIndex = currentScreenIndex + 1
+
+		print(currentScreenIndex)
+		print(moveToScreenIndex)
+
+		if moveToScreenIndex >= #allScreens + 1 then
+			moveToScreenIndex = 1
+		end
+
+		print(#allScreens)
+		print(moveToScreenIndex)
+
+		hs.window.focusedWindow():moveToScreen(allScreens[moveToScreenIndex], false, true)
 	end)
 end
 
