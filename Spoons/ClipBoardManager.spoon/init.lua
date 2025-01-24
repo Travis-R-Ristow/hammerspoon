@@ -137,7 +137,7 @@ function obj:init()
 		end
 	end
 
-	self.eventtap = hs.eventtap.new(
+	local normalEventCaptures = hs.eventtap.new(
 		{ hs.eventtap.event.types.keyUp, hs.eventtap.event.types.flagsChanged },
 		function(event)
 			local flags = event:getFlags()
@@ -153,14 +153,10 @@ function obj:init()
 			then
 				saveCopy()
 			end
-
-			-- if flags.cmd and keyCode == hs.keycodes.map["V"] then
-			-- 	saveCopy()
-			-- end
 		end
 	)
 
-	self.eventtap:start()
+	normalEventCaptures:start()
 end
 
 return obj
