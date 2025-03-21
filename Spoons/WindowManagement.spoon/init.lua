@@ -108,15 +108,9 @@ function obj:init()
 		local currentScreenIndex = getCurrentIndex(allScreens, currentScreen)
 		local moveToScreenIndex = currentScreenIndex + 1
 
-		print(currentScreenIndex)
-		print(moveToScreenIndex)
-
 		if moveToScreenIndex >= #allScreens + 1 then
 			moveToScreenIndex = 1
 		end
-
-		print(#allScreens)
-		print(moveToScreenIndex)
 
 		hs.window.focusedWindow():moveToScreen(allScreens[moveToScreenIndex], false, true)
 	end)

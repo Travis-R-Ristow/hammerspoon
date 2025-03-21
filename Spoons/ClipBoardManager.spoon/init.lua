@@ -26,7 +26,7 @@ local guidHistory = {}
 local maxSize = 10
 
 local tableContains = function(t, value)
-	for _, v in pairs(t) do
+	for _, v in ipairs(t) do
 		if v == value then
 			return true
 		end
@@ -52,6 +52,7 @@ function obj:init()
 
 	local updateDisplayTable = function()
 		menuTable = {}
+
 		for _, v in pairs(clipboardHistory) do
 			local shortV = v
 			if string.len(v) > 50 then
@@ -60,7 +61,8 @@ function obj:init()
 			table.insert(menuTable, {
 				title = shortV,
 				fn = function()
-					hs.eventtap.keyStrokes(v)
+					hs.pasteboard.setContents(v)
+					hs.eventtap.keyStroke({ "cmd" }, "v")
 				end,
 			})
 		end
@@ -70,8 +72,30 @@ function obj:init()
 			for _, v in pairs(acquiNameHistory) do
 				table.insert(menuTable, {
 					title = v,
-					fn = function()
-						hs.eventtap.keyStrokes(v)
+					fn = function(keysPressed)
+						local print_v = v
+						if keysPressed.alt or keysPressed.cmd or keysPressed.ctrl then
+							print_v = string.sub(print_v, 4, string.len(print_v)):gsub(
+								"("
+									.. string.rep("%x", 8)
+									.. ")"
+									.. "("
+									.. string.rep("%x", 4)
+									.. ")"
+									.. "("
+									.. string.rep("%x", 4)
+									.. ")"
+									.. "("
+									.. string.rep("%x", 4)
+									.. ")"
+									.. "("
+									.. string.rep("%x", 8)
+									.. ")",
+								"%1-%2-%3-%4-%5"
+							)
+						end
+						hs.pasteboard.setContents(print_v)
+						hs.eventtap.keyStroke({ "cmd" }, "v")
 					end,
 				})
 			end
@@ -82,8 +106,14 @@ function obj:init()
 			for _, v in pairs(guidHistory) do
 				table.insert(menuTable, {
 					title = v,
-					fn = function()
-						hs.eventtap.keyStrokes(string.lower(v))
+					fn = function(keysPressed)
+						local print_v = v
+						if keysPressed.alt or keysPressed.cmd or keysPressed.ctrl then
+							print_v = string.gsub(print_v, "-", "")
+							print_v = string.upper("ACQ") .. print_v
+						end
+						hs.pasteboard.setContents(print_v)
+						hs.eventtap.keyStroke({ "cmd" }, "v")
 					end,
 				})
 			end
@@ -100,6 +130,8 @@ function obj:init()
 
 	local saveCopy = function()
 		local copyCtx = hs.pasteboard.getContents()
+		print("copyCtx", copyCtx)
+
 		if string.match(copyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
 			if #acquiNameHistory < maxSize then
 				table.insert(acquiNameHistory, copyCtx)
@@ -151,6 +183,7 @@ function obj:init()
 					or keyCode == hs.keycodes.map["X"]
 				)
 			then
+				print("Save Copy")
 				saveCopy()
 			end
 		end
