@@ -25,7 +25,7 @@ local acquiNameHistory = {}
 local guidHistory = {}
 local maxSize = 10
 
-local tableContains = function(t, value)
+tableContains = function(t, value)
 	for _, v in ipairs(t) do
 		if v == value then
 			return true
@@ -34,7 +34,7 @@ local tableContains = function(t, value)
 	return false
 end
 
-local dedupTable = function(t)
+dedupTable = function(t)
 	local temp = {}
 	for _, v in ipairs(t) do
 		if not tableContains(temp, v) then
@@ -46,11 +46,11 @@ end
 
 function obj:init()
 	local menuTable = { { title = "No Copies to Paste" } }
-	local menuBar = hs.menubar.new(true, "ClipHistory")
-	menuBar:setIcon(hs.image.imageFromPath("~/.hammerspoon/ClipboardIcon.png"):size({ w = 20, h = 20 }))
-	menuBar:setMenu(menuTable)
+	MenuBar = hs.menubar.new(true, "ClipHistory")
+	MenuBar:setIcon(hs.image.imageFromPath("~/.hammerspoon/ClipboardIcon.png"):size({ w = 20, h = 20 }))
+	MenuBar:setMenu(menuTable)
 
-	local updateDisplayTable = function()
+	updateDisplayTable = function()
 		menuTable = {}
 
 		for _, v in pairs(clipboardHistory) do
@@ -119,30 +119,30 @@ function obj:init()
 			end
 		end
 
-		menuBar:setMenu(menuTable)
+		MenuBar:setMenu(menuTable)
 	end
 
 	hs.hotkey.bind({ "cmd", "ctrl" }, "V", function()
-		local focusedWindow = hs.window.focusedWindow():screen():frame()
+		FocusedWindow = hs.window.focusedWindow():screen():frame()
 		updateDisplayTable()
-		menuBar:popupMenu({ x = focusedWindow.x + (focusedWindow.w / 2) - (focusedWindow.w / 4), y = focusedWindow.y })
+		MenuBar:popupMenu({ x = FocusedWindow.x + (FocusedWindow.w / 2) - (FocusedWindow.w / 4), y = FocusedWindow.y })
 	end)
 
-	local saveCopy = function()
-		local copyCtx = hs.pasteboard.getContents()
-		print("copyCtx", copyCtx)
+	saveCopy = function()
+		CopyCtx = hs.pasteboard.getContents()
+		print("copyCtx", CopyCtx)
 
-		if string.match(copyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
+		if string.match(CopyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
 			if #acquiNameHistory < maxSize then
-				table.insert(acquiNameHistory, copyCtx)
+				table.insert(acquiNameHistory, CopyCtx)
 			else
 				table.remove(acquiNameHistory, 1)
-				table.insert(acquiNameHistory, copyCtx)
+				table.insert(acquiNameHistory, CopyCtx)
 			end
 			acquiNameHistory = dedupTable(acquiNameHistory)
 		elseif
 			string.match(
-				copyCtx,
+				CopyCtx,
 				"^"
 					.. string.rep("%x", 8)
 					.. "%-"
@@ -152,28 +152,30 @@ function obj:init()
 			)
 		then
 			if #guidHistory < maxSize then
-				table.insert(guidHistory, copyCtx)
+				table.insert(guidHistory, CopyCtx)
 			else
 				table.remove(guidHistory, 1)
-				table.insert(guidHistory, copyCtx)
+				table.insert(guidHistory, CopyCtx)
 			end
 			guidHistory = dedupTable(guidHistory)
-			hs.pasteboard.setContents(string.lower(copyCtx))
+			hs.pasteboard.setContents(string.lower(CopyCtx))
 		elseif #clipboardHistory < maxSize then
-			table.insert(clipboardHistory, copyCtx)
+			table.insert(clipboardHistory, CopyCtx)
 			clipboardHistory = dedupTable(clipboardHistory)
 		else
 			table.remove(clipboardHistory, 1)
-			table.insert(clipboardHistory, copyCtx)
+			table.insert(clipboardHistory, CopyCtx)
 			clipboardHistory = dedupTable(clipboardHistory)
 		end
 	end
 
-	local normalEventCaptures = hs.eventtap.new(
+	NormalEventCaptures = hs.eventtap.new(
 		{ hs.eventtap.event.types.keyUp, hs.eventtap.event.types.flagsChanged },
 		function(event)
 			local flags = event:getFlags()
 			local keyCode = event:getKeyCode()
+
+			print("Test??", flags.cmd, keyCode)
 
 			if
 				flags.cmd
@@ -183,13 +185,13 @@ function obj:init()
 					or keyCode == hs.keycodes.map["X"]
 				)
 			then
-				print("Save Copy")
+				-- print("Save Copy")
 				saveCopy()
 			end
 		end
 	)
 
-	normalEventCaptures:start()
+	NormalEventCaptures:start()
 end
 
 return obj
