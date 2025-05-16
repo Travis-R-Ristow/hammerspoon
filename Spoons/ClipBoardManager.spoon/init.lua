@@ -24,6 +24,27 @@ local clipboardHistory = {}
 local acquiNameHistory = {}
 local guidHistory = {}
 local maxSize = 10
+local GUID_REGEX = "^"
+	.. string.rep("%x", 8)
+	.. "%-"
+	.. string.rep(string.rep("%x", 4) .. "%-", 3)
+	.. string.rep("%x", 12)
+	.. "$"
+local AcquiName_Parse_REGEX = "("
+	.. string.rep("%x", 8)
+	.. ")"
+	.. "("
+	.. string.rep("%x", 4)
+	.. ")"
+	.. "("
+	.. string.rep("%x", 4)
+	.. ")"
+	.. "("
+	.. string.rep("%x", 4)
+	.. ")"
+	.. "("
+	.. string.rep("%x", 8)
+	.. ")"
 
 tableContains = function(t, value)
 	for _, v in ipairs(t) do
@@ -50,7 +71,7 @@ function obj:init()
 	MenuBar:setIcon(hs.image.imageFromPath("~/.hammerspoon/ClipboardIcon.png"):size({ w = 20, h = 20 }))
 	MenuBar:setMenu(menuTable)
 
-	updateDisplayTable = function()
+	local updateDisplayTable = function()
 		menuTable = {}
 
 		for _, v in pairs(clipboardHistory) do
@@ -75,24 +96,9 @@ function obj:init()
 					fn = function(keysPressed)
 						local print_v = v
 						if keysPressed.alt or keysPressed.cmd or keysPressed.ctrl then
-							print_v = string.sub(print_v, 4, string.len(print_v)):gsub(
-								"("
-									.. string.rep("%x", 8)
-									.. ")"
-									.. "("
-									.. string.rep("%x", 4)
-									.. ")"
-									.. "("
-									.. string.rep("%x", 4)
-									.. ")"
-									.. "("
-									.. string.rep("%x", 4)
-									.. ")"
-									.. "("
-									.. string.rep("%x", 8)
-									.. ")",
-								"%1-%2-%3-%4-%5"
-							)
+							print_v = string
+								.sub(print_v, 4, string.len(print_v))
+								:gsub(AcquiName_Parse_REGEX, "%1-%2-%3-%4-%5")
 						end
 						hs.pasteboard.setContents(print_v)
 						hs.eventtap.keyStroke({ "cmd" }, "v")
@@ -140,17 +146,7 @@ function obj:init()
 				table.insert(acquiNameHistory, CopyCtx)
 			end
 			acquiNameHistory = dedupTable(acquiNameHistory)
-		elseif
-			string.match(
-				CopyCtx,
-				"^"
-					.. string.rep("%x", 8)
-					.. "%-"
-					.. string.rep(string.rep("%x", 4) .. "%-", 3)
-					.. string.rep("%x", 12)
-					.. "$"
-			)
-		then
+		elseif string.match(CopyCtx, GUID_REGEX) then
 			if #guidHistory < maxSize then
 				table.insert(guidHistory, CopyCtx)
 			else
@@ -185,8 +181,26 @@ function obj:init()
 					or keyCode == hs.keycodes.map["X"]
 				)
 			then
-				-- print("Save Copy")
+				print("Save Copy")
 				saveCopy()
+			end
+
+			print("new test", flags.alt, keyCode)
+
+			if flags.alt and (keyCode == hs.keycodes.map["V"]) then
+				local currentCopy = hs.pasteboard.getContents()
+				if string.match(currentCopy, GUID_REGEX) then
+					currentCopy = string.gsub(currentCopy, "-", "")
+					currentCopy = string.upper("ACQ") .. currentCopy
+					hs.pasteboard.setContents(currentCopy)
+					hs.eventtap.keyStroke({ "cmd" }, "v")
+				elseif string.match(CopyCtx, "^ACQ" .. string.rep("%x", 32) .. "$") then
+					currentCopy = string
+						.sub(currentCopy, 4, string.len(currentCopy))
+						:gsub(AcquiName_Parse_REGEX, "%1-%2-%3-%4-%5")
+					hs.pasteboard.setContents(currentCopy)
+					hs.eventtap.keyStroke({ "cmd" }, "v")
+				end
 			end
 		end
 	)
