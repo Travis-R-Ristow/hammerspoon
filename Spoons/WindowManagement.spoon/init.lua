@@ -24,6 +24,56 @@ function obj:init()
 	hs.grid.setGrid("2x2")
 	hs.grid.setMargins("0x0")
 
+	hs.hotkey.bind({ "cmd" }, "1", function()
+		hs.application.launchOrFocus("iTerm")
+	end)
+
+	hs.hotkey.bind({ "cmd" }, "2", function()
+		hs.application.launchOrFocus("Google Chrome")
+	end)
+
+	hs.hotkey.bind({ "cmd" }, "3", function()
+		hs.application.launchOrFocus("Rider")
+	end)
+
+	hs.hotkey.bind({ "cmd" }, "4", function()
+		hs.application.launchOrFocus("Visual Studio Code")
+	end)
+
+	hs.hotkey.bind({ "cmd" }, "9", function()
+		local iterm = hs.application.get("iTerm2")
+		if iterm then
+			local windows = iterm:allWindows()
+			for _, win in ipairs(windows) do
+				if string.find(win:title(), "scratch%-pad") then
+					win:focus()
+					return
+				end
+			end
+		end
+
+		local script = [[
+			tell application "iTerm2"
+				activate
+				create window with default profile
+				tell current session of current window
+					write text "cd ~/Documents/Notes && vim scratch-pad.md"
+				end tell
+			end tell
+		]]
+		hs.osascript.applescript(script)
+		hs.timer.doAfter(0.3, function()
+			local win = hs.window.focusedWindow()
+			if win then
+				win:maximize()
+			end
+		end)
+	end)
+
+	hs.hotkey.bind({ "cmd" }, "0", function()
+		hs.application.launchOrFocus("Slack")
+	end)
+
 	hs.hotkey.bind({ "ctrl", "shift" }, "Q", function()
 		local win = hs.window.focusedWindow()
 		hs.grid.set(win, "0,0,1,1")
@@ -56,8 +106,8 @@ function obj:init()
 
 	hs.hotkey.bind({ "ctrl" }, "F", function()
 		local win = hs.window.focusedWindow()
-		local winSizeW = hs.window.focusedWindow():screen():frame().w
-		local winSizeH = hs.window.focusedWindow():screen():frame().h
+		local winSizeW = win:screen():frame().w
+		local winSizeH = win:screen():frame().h
 		local screenX = hs.screen.mainScreen():frame().x
 		local screenY = hs.screen.mainScreen():frame().y
 
@@ -81,7 +131,7 @@ function obj:init()
 		end
 	end)
 
-	function getCurrentIndex(tbl, searchValue)
+	local function getCurrentIndex(tbl, searchValue)
 		for k, v in pairs(tbl) do
 			if v == searchValue then
 				return k
@@ -89,30 +139,33 @@ function obj:init()
 		end
 	end
 
-	hs.hotkey.bind({ "ctrl", "shift" }, "LEFT", function()
-		local currentScreen = hs.screen.mainScreen()
-		local allScreens = hs.screen.allScreens()
-		local currentScreenIndex = getCurrentIndex(allScreens, currentScreen)
-		local moveToScreenIndex = currentScreenIndex - 1
-
-		if moveToScreenIndex <= 0 then
-			moveToScreenIndex = #allScreens
-		end
-
-		hs.window.focusedWindow():moveToScreen(allScreens[moveToScreenIndex], false, true)
-	end)
+	local function getOrderedScreens()
+		local screens = hs.screen.allScreens()
+		table.sort(screens, function(a, b)
+			local aFrame = a:frame()
+			local bFrame = b:frame()
+			if aFrame.x ~= bFrame.x then
+				return aFrame.x < bFrame.x
+			end
+			return aFrame.y < bFrame.y
+		end)
+		return screens
+	end
 
 	hs.hotkey.bind({ "ctrl", "shift" }, "RIGHT", function()
-		local currentScreen = hs.screen.mainScreen()
-		local allScreens = hs.screen.allScreens()
-		local currentScreenIndex = getCurrentIndex(allScreens, currentScreen)
-		local moveToScreenIndex = currentScreenIndex + 1
+		local win = hs.window.focusedWindow()
+		local screens = getOrderedScreens()
+		local currentIndex = getCurrentIndex(screens, win:screen())
+		local nextIndex = (currentIndex % #screens) + 1
+		win:moveToScreen(screens[nextIndex], false, true)
+	end)
 
-		if moveToScreenIndex >= #allScreens + 1 then
-			moveToScreenIndex = 1
-		end
-
-		hs.window.focusedWindow():moveToScreen(allScreens[moveToScreenIndex], false, true)
+	hs.hotkey.bind({ "ctrl", "shift" }, "LEFT", function()
+		local win = hs.window.focusedWindow()
+		local screens = getOrderedScreens()
+		local currentIndex = getCurrentIndex(screens, win:screen())
+		local prevIndex = ((currentIndex - 2) % #screens) + 1
+		win:moveToScreen(screens[prevIndex], false, true)
 	end)
 end
 
