@@ -40,6 +40,10 @@ function obj:init()
 		hs.application.launchOrFocus("Visual Studio Code")
 	end)
 
+	hs.hotkey.bind({ "cmd" }, "5", function()
+		hs.application.launchOrFocus("Postman")
+	end)
+
 	hs.hotkey.bind({ "cmd" }, "9", function()
 		local iterm = hs.application.get("iTerm2")
 		if iterm then
@@ -52,22 +56,13 @@ function obj:init()
 			end
 		end
 
-		local script = [[
-			tell application "iTerm2"
-				activate
-				create window with default profile
-				tell current session of current window
-					write text "cd ~/Documents/Notes && vim scratch-pad.md"
-				end tell
-			end tell
-		]]
-		hs.osascript.applescript(script)
-		hs.timer.doAfter(0.3, function()
-			local win = hs.window.focusedWindow()
-			if win then
-				win:maximize()
-			end
-		end)
+		hs.application.launchOrFocus("iTerm")
+		hs.eventtap.keyStroke({ "cmd" }, "n")
+		hs.eventtap.keyStrokes("cd ~/Documents/Notes && vim scratch-pad.md\n")
+		local win = hs.window.focusedWindow()
+		if win then
+			win:maximize()
+		end
 	end)
 
 	hs.hotkey.bind({ "cmd" }, "0", function()
