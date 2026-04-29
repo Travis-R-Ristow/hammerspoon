@@ -152,17 +152,35 @@ function obj:init()
 		menuBar:popupMenu({ x = screen.x + (screen.w / 4), y = screen.y })
 	end)
 
+	local pendingAction = nil
+
+	local function isCopyKey(keyCode)
+		return keyCode == hs.keycodes.map["C"]
+			or keyCode == hs.keycodes.map["V"]
+			or keyCode == hs.keycodes.map["X"]
+	end
+
 	local eventCapture = hs.eventtap.new(
-		{ hs.eventtap.event.types.keyUp, hs.eventtap.event.types.flagsChanged },
+		{ hs.eventtap.event.types.keyDown, hs.eventtap.event.types.keyUp },
 		function(event)
+			local eventType = event:getType()
 			local flags = event:getFlags()
 			local keyCode = event:getKeyCode()
 
-			if flags.cmd and (keyCode == hs.keycodes.map["C"] or keyCode == hs.keycodes.map["V"] or keyCode == hs.keycodes.map["X"]) then
-				saveCopy()
+			if eventType == hs.eventtap.event.types.keyDown then
+				if flags.alt and keyCode == hs.keycodes.map["V"] then
+					pendingAction = "altpaste"
+				elseif flags.cmd and isCopyKey(keyCode) then
+					pendingAction = "copy"
+				end
+				return
 			end
 
-			if flags.alt and keyCode == hs.keycodes.map["V"] then
+			if pendingAction == "copy" and isCopyKey(keyCode) then
+				pendingAction = nil
+				saveCopy()
+			elseif pendingAction == "altpaste" and keyCode == hs.keycodes.map["V"] then
+				pendingAction = nil
 				local currentCopy = hs.pasteboard.getContents()
 				if not currentCopy then
 					return
