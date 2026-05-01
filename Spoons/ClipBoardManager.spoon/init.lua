@@ -93,6 +93,7 @@ local function saveCopy()
 end
 
 local menuBar
+local eventCapture
 
 function obj:init()
 	menuBar = hs.menubar.new(true, "ClipHistory")
@@ -161,7 +162,7 @@ function obj:init()
 			or keyCode == hs.keycodes.map["X"]
 	end
 
-	local eventCapture = hs.eventtap.new(
+	eventCapture = hs.eventtap.new(
 		{ hs.eventtap.event.types.keyDown, hs.eventtap.event.types.keyUp },
 		function(event)
 			local eventType = event:getType()
@@ -172,14 +173,11 @@ function obj:init()
 				if flags.alt and flags.cmd and keyCode == hs.keycodes.map["V"] then
 					pendingAction = "altpaste"
 					return true
-				elseif flags.cmd and isCopyKey(keyCode) then
-					pendingAction = "copy"
 				end
-				return
+				return false
 			end
 
-			if pendingAction == "copy" and isCopyKey(keyCode) then
-				pendingAction = nil
+			if flags.cmd and isCopyKey(keyCode) then
 				hs.timer.doAfter(0.05, saveCopy)
 			elseif pendingAction == "altpaste" and keyCode == hs.keycodes.map["V"] then
 				pendingAction = nil
@@ -197,6 +195,7 @@ function obj:init()
 				end
 				return true
 			end
+			return false
 		end
 	)
 

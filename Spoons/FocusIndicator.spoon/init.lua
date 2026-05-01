@@ -11,11 +11,23 @@ local windowFilter = nil
 local menuBar = nil
 local flashTimer = nil
 
-local currentMode = "alwaysVisible"
-local currentStyle = "corners"
-local currentColorName = "Green"
-local markerLength = 20
-local markerThickness = 2
+local SETTINGS_KEY = "FocusIndicator"
+
+local function loadSetting(key, default)
+	local val = hs.settings.get(SETTINGS_KEY .. "." .. key)
+	if val == nil then
+		return default
+	end
+	return val
+end
+
+local function saveSetting(key, value)
+	hs.settings.set(SETTINGS_KEY .. "." .. key, value)
+end
+
+local currentMode = loadSetting("mode", "alwaysVisible")
+local currentStyle = loadSetting("style", "corners")
+local currentColorName = loadSetting("color", "Green")
 local flashDuration = 1.5
 
 local sizePresets = {
@@ -23,7 +35,17 @@ local sizePresets = {
 	{ name = "Medium", length = 40, thickness = 3 },
 	{ name = "Large", length = 60, thickness = 4 },
 }
-local currentSizeName = "Small"
+local currentSizeName = loadSetting("size", "Small")
+local markerLength = sizePresets[1].length
+local markerThickness = sizePresets[1].thickness
+
+for _, preset in ipairs(sizePresets) do
+	if preset.name == currentSizeName then
+		markerLength = preset.length
+		markerThickness = preset.thickness
+		break
+	end
+end
 
 local colorMap = {
 	Green = { red = 0.2, green = 0.84, blue = 0.29, alpha = 1 },
@@ -133,6 +155,7 @@ end
 
 local function applyColor(colorName)
 	currentColorName = colorName
+	saveSetting("color", colorName)
 	local color = colorMap[colorName]
 	if canvas then
 		for i = 1, 8 do
@@ -143,6 +166,7 @@ end
 
 local function applySize(sizeName)
 	currentSizeName = sizeName
+	saveSetting("size", sizeName)
 	for _, preset in ipairs(sizePresets) do
 		if preset.name == sizeName then
 			markerLength = preset.length
@@ -198,6 +222,7 @@ local function buildMenuTable()
 			checked = (currentMode == "alwaysVisible"),
 			fn = function()
 				currentMode = "alwaysVisible"
+				saveSetting("mode", currentMode)
 				updateMarkers()
 			end,
 		},
@@ -206,6 +231,7 @@ local function buildMenuTable()
 			checked = (currentMode == "flashOnChange"),
 			fn = function()
 				currentMode = "flashOnChange"
+				saveSetting("mode", currentMode)
 				hideMarkers()
 			end,
 		},
@@ -216,6 +242,7 @@ local function buildMenuTable()
 			checked = (currentStyle == "corners"),
 			fn = function()
 				currentStyle = "corners"
+				saveSetting("style", currentStyle)
 				updateMarkers()
 			end,
 		},
@@ -224,6 +251,7 @@ local function buildMenuTable()
 			checked = (currentStyle == "full"),
 			fn = function()
 				currentStyle = "full"
+				saveSetting("style", currentStyle)
 				updateMarkers()
 			end,
 		},
