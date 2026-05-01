@@ -169,7 +169,7 @@ function obj:init()
 			local keyCode = event:getKeyCode()
 
 			if eventType == hs.eventtap.event.types.keyDown then
-				if flags.alt and keyCode == hs.keycodes.map["V"] then
+				if flags.alt and flags.cmd and keyCode == hs.keycodes.map["V"] then
 					pendingAction = "altpaste"
 					return true
 				elseif flags.cmd and isCopyKey(keyCode) then
