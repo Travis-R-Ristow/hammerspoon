@@ -147,9 +147,10 @@ function obj:init()
 	end
 
 	hs.hotkey.bind({ "cmd", "ctrl" }, "V", function()
-		local screen = hs.window.focusedWindow():screen():frame()
 		buildMenu()
-		menuBar:popupMenu({ x = screen.x + (screen.w / 4), y = screen.y })
+		local screen = hs.window.focusedWindow():screen():frame()
+		local iconFrame = menuBar:frame()
+		menuBar:popupMenu({ x = iconFrame.x, y = screen.y })
 	end)
 
 	local pendingAction = nil
@@ -170,6 +171,7 @@ function obj:init()
 			if eventType == hs.eventtap.event.types.keyDown then
 				if flags.alt and keyCode == hs.keycodes.map["V"] then
 					pendingAction = "altpaste"
+					return true
 				elseif flags.cmd and isCopyKey(keyCode) then
 					pendingAction = "copy"
 				end
@@ -178,19 +180,22 @@ function obj:init()
 
 			if pendingAction == "copy" and isCopyKey(keyCode) then
 				pendingAction = nil
-				saveCopy()
+				hs.timer.doAfter(0.05, saveCopy)
 			elseif pendingAction == "altpaste" and keyCode == hs.keycodes.map["V"] then
 				pendingAction = nil
 				local currentCopy = hs.pasteboard.getContents()
 				if not currentCopy then
-					return
+					return true
 				end
+
+				currentCopy = currentCopy:match("^%s*(.-)%s*$")
 
 				if string.match(currentCopy, GUID_REGEX) then
 					pasteValue(guidToAcquiName(currentCopy))
 				elseif string.match(currentCopy, ACQUI_NAME_REGEX) then
 					pasteValue(acquiNameToGuid(currentCopy))
 				end
+				return true
 			end
 		end
 	)
