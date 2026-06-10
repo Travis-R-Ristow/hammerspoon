@@ -20,7 +20,7 @@ local GUID_REGEX = "^"
 
 local ACQUI_NAME_REGEX = "^ACQ" .. string.rep("%x", 32) .. "$"
 
-local ACQUI_PARSE_REGEX = "("
+local ACQUI_PARSE_REGEX = "^("
 	.. string.rep("%x", 8)
 	.. ")"
 	.. "("
@@ -33,8 +33,8 @@ local ACQUI_PARSE_REGEX = "("
 	.. string.rep("%x", 4)
 	.. ")"
 	.. "("
-	.. string.rep("%x", 8)
-	.. ")"
+	.. string.rep("%x", 12)
+	.. ")$"
 
 local function addToHistory(list, value)
 	for i, v in ipairs(list) do
@@ -57,7 +57,8 @@ end
 
 local function acquiNameToGuid(acquiName)
 	local hex = string.sub(acquiName, 4)
-	return hex:gsub(ACQUI_PARSE_REGEX, "%1-%2-%3-%4-%5")
+	local guid = hex:gsub(ACQUI_PARSE_REGEX, "%1-%2-%3-%4-%5")
+	return guid
 end
 
 local function hasModifier(keysPressed)
@@ -74,6 +75,31 @@ end
 local function pasteValue(value)
 	hs.pasteboard.setContents(value)
 	hs.eventtap.keyStroke({ "cmd" }, "v")
+end
+
+local function parseGuidOrName(value)
+	if string.match(value, GUID_REGEX) then
+		return guidToAcquiName(value)
+	elseif string.match(value, ACQUI_NAME_REGEX) then
+		return acquiNameToGuid(value)
+	end
+	return nil
+end
+
+local function parseSelectionOrClipboard()
+	hs.eventtap.keyStroke({ "cmd" }, "c")
+	hs.timer.doAfter(0.1, function()
+		local contents = hs.pasteboard.getContents()
+		if not contents then
+			return
+		end
+
+		contents = contents:match("^%s*(.-)%s*$")
+		local parsed = parseGuidOrName(contents)
+		if parsed then
+			pasteValue(parsed)
+		end
+	end)
 end
 
 local function saveCopy()
@@ -177,23 +203,12 @@ function obj:init()
 				return false
 			end
 
-			if flags.cmd and isCopyKey(keyCode) then
-				hs.timer.doAfter(0.05, saveCopy)
-			elseif pendingAction == "altpaste" and keyCode == hs.keycodes.map["V"] then
+			if pendingAction == "altpaste" and keyCode == hs.keycodes.map["V"] then
 				pendingAction = nil
-				local currentCopy = hs.pasteboard.getContents()
-				if not currentCopy then
-					return true
-				end
-
-				currentCopy = currentCopy:match("^%s*(.-)%s*$")
-
-				if string.match(currentCopy, GUID_REGEX) then
-					pasteValue(guidToAcquiName(currentCopy))
-				elseif string.match(currentCopy, ACQUI_NAME_REGEX) then
-					pasteValue(acquiNameToGuid(currentCopy))
-				end
+				parseSelectionOrClipboard()
 				return true
+			elseif flags.cmd and isCopyKey(keyCode) then
+				hs.timer.doAfter(0.05, saveCopy)
 			end
 			return false
 		end
