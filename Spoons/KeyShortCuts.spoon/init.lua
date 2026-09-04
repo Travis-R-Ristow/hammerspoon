@@ -28,6 +28,40 @@ function obj:init()
 	hs.hotkey.bind({}, "End", function()
 		hs.eventtap.keyStroke({ "cmd" }, "Right")
 	end)
+
+	hs.hotkey.bind({ "ctrl", "shift" }, "O", function()
+		local f = io.open(os.getenv("HOME") .. "/.claude/.last-read", "r")
+		if not f then
+			hs.alert.show("No file breadcrumb found")
+			return
+		end
+		local line = f:read("*l")
+		local root = f:read("*l") or ""
+		f:close()
+		if not line or line == "" then
+			hs.alert.show("Empty breadcrumb")
+			return
+		end
+		local file, ln = line:match("^(.+):(%d+)$")
+		if not file then
+			file = line
+			ln = "1"
+		end
+		local cd_cmd = ""
+		if root ~= "" then
+			cd_cmd = "cd '" .. root .. "' && "
+		end
+		hs.osascript.applescript([[
+			tell application "iTerm2"
+				tell current window
+					create tab with default profile
+					tell current session
+						write text "]] .. cd_cmd .. [[nvim +]] .. ln .. [[ ']] .. file .. [['"
+					end tell
+				end tell
+			end tell
+		]])
+	end)
 end
 
 return obj
